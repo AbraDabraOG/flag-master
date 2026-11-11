@@ -1,0 +1,1 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100"><rect width="200" height="100" fill="#fff"/><rect y="50" width="200" height="10" fill="#e21836"/><rect y="70" width="200" height="10" fill="#e21836"/><g fill="#e21836"><path id="s" d="M50 10l4.7 14.5h15.3l-12.4 9 4.7 14.5-12.3-9-12.3 9 4.7-14.5-12.4-9h15.3z"/><use href="#s" x="50"/><use href="#s" x="100"/></g></svg>

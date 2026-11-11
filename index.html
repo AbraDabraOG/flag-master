@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141a24">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Flag Master">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data:; script-src 'self' file:">
+<title>Flag Master</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <nav class="sidebar" aria-label="Main">
+    <div class="brand">
+      <img src="icon.png" alt="" width="36" height="36">
+      <div><div class="brand-name">Flag Master</div><div class="brand-sub">flags, maps & trivia</div></div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn" data-view="play"><span class="nav-ico">⚑</span>Flags</button>
+      <button class="nav-btn" data-view="map"><span class="nav-ico">◍</span>Globe</button>
+      <button class="nav-btn" data-view="shapes"><span class="nav-ico">⬟</span>Shapes</button>
+      <button class="nav-btn" data-view="capitals"><span class="nav-ico">★</span>Capitals</button>
+      <button class="nav-btn" data-view="hop"><span class="nav-ico">⇄</span>Border Hop</button>
+      <button class="nav-btn" data-view="mystery"><span class="nav-ico">✎</span>Mystery</button>
+      <button class="nav-btn" data-view="trivia"><span class="nav-ico">?</span>Trivia</button>
+      <button class="nav-btn" data-view="study"><span class="nav-ico">▤</span>Study</button>
+      <button class="nav-btn" data-view="stats"><span class="nav-ico">▮</span>Progress</button>
+      <button class="nav-btn" data-view="achievements"><span class="nav-ico">✦</span>Achievements</button>
+      <button class="nav-btn" data-view="settings"><span class="nav-ico">⚙</span>Settings</button>
+    </div>
+    <div class="level-card" id="levelCard"></div>
+  </nav>
+  <main id="main" tabindex="-1"></main>
+</div>
+<div id="toasts" aria-live="polite"></div>
+<script src="data.js"></script>
+<script src="vendor/d3-array.min.js"></script>
+<script src="vendor/d3-geo.min.js"></script>
+<script src="vendor/topojson-client.min.js"></script>
+<script src="vendor/geo-data.js"></script>
+<script src="vendor/shape-data.js"></script>
+<script src="trivia.js"></script>
+<script src="borders.js"></script>
+<script src="facts.js"></script>
+<script src="map.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

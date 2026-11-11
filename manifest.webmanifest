@@ -1,0 +1,16 @@
+{
+  "name": "Flag Master",
+  "short_name": "Flag Master",
+  "description": "Flags, maps, capitals and trivia with adaptive review",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#141a24",
+  "theme_color": "#141a24",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
