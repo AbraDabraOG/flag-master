@@ -380,11 +380,29 @@ function go(v) {
   if (trivia && !trivia.done && v !== 'trivia-play') stopTrivia();
   if (hop && hop.map && v !== 'hop-play') { hop.map.destroy(); hop.map = null; }
   view = v;
-  $$('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === v || (b.dataset.view === 'trivia' && v.startsWith('trivia')) || v === b.dataset.view + '-play'));
+  const isOn = b => b.dataset.view === v || (b.dataset.view === 'trivia' && v.startsWith('trivia')) || v === b.dataset.view + '-play';
+  $$('.nav-btn[data-view], .more-item').forEach(b => b.classList.toggle('active', isOn(b)));
+  // phone tab bar: "More" stands in for whichever tucked-away tab is open
+  const ex = $$('.nav-btn.extra').find(isOn), mb = $('#navMore');
+  mb.classList.toggle('active', !!ex);
+  mb.innerHTML = ex ? `${ex.firstElementChild.outerHTML}<span class="nav-lbl">${h(ex.textContent.replace(ex.firstElementChild.textContent, ''))}</span>` : '<span class="nav-ico">⋯</span><span class="nav-lbl">More</span>';
+  toggleMore(false); $$('.modal-bg').forEach(m => m.remove());
   main.scrollTop = 0;
   ({ play: () => renderHub('flags'), capitals: () => renderHub('capitals'), map: () => renderHub('map'), shapes: () => renderHub('shapes'), quiz: renderQuiz, results: renderResults, study: renderStudy, stats: renderStats, achievements: renderAchievements, settings: renderSettings, trivia: renderTrivia, 'trivia-play': renderTriviaPlay, 'trivia-results': renderTriviaResults, hop: renderHop, 'hop-play': renderHopPlay, mystery: renderMystery, 'mystery-play': renderMystPlay })[v]();
 }
-$$('.nav-btn').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+$$('.nav-btn[data-view]').forEach(b => b.addEventListener('click', () => go(b.dataset.view)));
+// Phone "More" sheet: the tabs that don't fit in the bottom bar.
+const moreSheet = document.createElement('div');
+moreSheet.className = 'more-bg'; moreSheet.hidden = true;
+moreSheet.innerHTML = `<div class="more-sheet" role="menu">${$$('.nav-btn.extra').map(b => `<button class="more-item" role="menuitem" data-view="${b.dataset.view}">${b.innerHTML}</button>`).join('')}</div>`;
+document.body.appendChild(moreSheet);
+function toggleMore(open = moreSheet.hidden) {
+  if (open) moreSheet.style.bottom = $('.nav').getBoundingClientRect().height + 'px';
+  moreSheet.hidden = !open; $('#navMore').classList.toggle('open', open);
+}
+$('#navMore').addEventListener('click', () => toggleMore());
+moreSheet.addEventListener('click', e => { const b = e.target.closest('.more-item'); if (b) go(b.dataset.view); else toggleMore(false); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !moreSheet.hidden) { e.stopImmediatePropagation(); toggleMore(false); } }, true);
 
 // ---------- mastery summaries ----------
 function summarize(pool, kind = 'flags') {
@@ -1225,6 +1243,26 @@ function distFrom(a) {
 }
 const hopDist = (a, b) => distFrom(a)[b] ?? Infinity;
 // Countries a player may name: every country, plus Western Sahara.
+// Tap-to-pick suggestions under a text box. Replaces <datalist>, whose native dropdown covers half the screen on phones.
+function attachSuggest(inp, box, pool, onPick, { flags = true, max = 8 } = {}) {
+  const idx = pool.map(f => ({ f, n: [f.name, ...(f.aliases || [])].map(normalize) }));
+  const render = () => {
+    const t = normalize(inp.value);
+    if (!t) { box.innerHTML = ''; return; }
+    const starts = idx.filter(x => x.n.some(n => n.startsWith(t)));
+    const inside = idx.filter(x => !starts.includes(x) && x.n.some(n => n.includes(' ' + t)));
+    const hits = [...starts, ...inside].slice(0, max);
+    box.innerHTML = hits.map(x => `<button type="button" class="sugg-chip" data-id="${x.f.id}">${flags ? `<img src="${x.f.src}" alt="">` : ''}${h(x.f.name)}</button>`).join('');
+    box.scrollLeft = 0;
+  };
+  inp.addEventListener('input', render);
+  box.addEventListener('pointerdown', e => e.preventDefault()); // keeps focus (and the phone keyboard) on the input
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.sugg-chip'); if (!b) return;
+    const f = pool.find(x => x.id === b.dataset.id); inp.value = ''; box.innerHTML = ''; onPick(f);
+  });
+  inp.addEventListener('keydown', e => { if (e.key === 'Tab' && !e.shiftKey && box.firstElementChild) { e.preventDefault(); inp.value = box.firstElementChild.textContent; render(); } });
+}
 const HOP_GUESSABLE = [...D.countries, FLAG_BY_ID['terr:eh']].filter(Boolean);
 const HOP_REGIONS = [['world', 'World'], ['Europe', 'Europe'], ['Africa', 'Africa'], ['Asia', 'Asia'], ['Americas', 'Americas']];
 const HOP_DIFF = { easy: { name: 'Easy', lo: 1, hi: 2 }, medium: { name: 'Medium', lo: 3, hi: 4 }, hard: { name: 'Hard', lo: 5, hi: 8 } };
@@ -1381,8 +1419,8 @@ function renderHopPlay() {
       <div class="row">${s.done ? '' : '<button class="btn ghost sm" id="hopGiveUp">Give up</button>'}<button class="btn ghost sm" id="hopQuit">Back</button></div>
     </div>
     <div class="hop-ends"><div class="hop-end-c"><img src="${A.src}" alt=""><div><div class="eyebrow">From</div><h2>${h(A.name)}</h2></div></div><div class="hop-arrow">⟶</div><div class="hop-end-c"><img src="${B.src}" alt=""><div><div class="eyebrow">To</div><h2>${h(B.name)}</h2></div></div></div>
-    ${s.done ? end : `<div class="type-row"><input id="hopIn" type="text" list="hopList" autocomplete="off" spellcheck="false" placeholder="Name a country on the way and press Enter"><button class="btn" id="hopHint" title="Name a country on a shortest route (−10 XP)">Hint</button><button class="btn primary" id="hopAdd">Add</button></div>
-    <datalist id="hopList">${HOP_GUESSABLE.map(f => `<option value="${h(f.name)}">`).join('')}</datalist>
+    ${s.done ? end : `<div class="type-row"><input id="hopIn" type="text" autocomplete="off" spellcheck="false" placeholder="Name a country on the way and press Enter"><button class="btn" id="hopHint" title="Name a country on a shortest route (−10 XP)">Hint</button><button class="btn primary" id="hopAdd">Add</button></div>
+    <div class="sugg" id="hopSugg"></div>
     <div class="hop-msg" id="hopMsg"></div>`}
     <div class="hop-body">
       <div class="hop-guesses">${s.guesses.length ? s.guesses.map((g, i) => { const f = hopPlace(g.id); return `<div class="hop-g"><span class="n">${i + 1}</span><img src="${f.src}" alt=""><span class="nm">${h(f.name)}</span>${detourBadge(g.detour)}${g.inline ? '<span class="il" title="Bordered your route when you named it">in line</span>' : ''}</div>`; }).join('') : '<p class="muted">Your guesses show up here. Start next to either end and work across.</p>'}</div>
@@ -1402,6 +1440,7 @@ function renderHopPlay() {
     };
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submit(); } });
     $('#hopAdd').addEventListener('click', submit);
+    attachSuggest(inp, $('#hopSugg'), HOP_GUESSABLE, f => hopGuess(f));
     $('#hopHint').addEventListener('click', () => { hopHint(); inp.focus(); });
     $('#hopGiveUp').addEventListener('click', () => hopFinish(false));
   }
@@ -1496,8 +1535,8 @@ function renderMystPlay() {
     </div>
     ${m.done ? `<div class="feedback ${m.won ? 'good' : 'bad'}"><div class="myst-ans"><img src="${f.src}" alt=""><div><div class="fb-title">${m.won ? `Got it in ${m.shown} clue${m.shown > 1 ? 's' : ''}` : 'Not this time'}</div><div class="fb-sub">It was <b>${h(f.name)}</b>${f.capital ? `, capital ${h(f.capital)}` : ''}.</div></div></div>
       <div class="row">${m.won ? `<span class="gain">+${m.gain} XP</span>` : ''}<button class="btn primary" id="mystNext">Next mystery <kbd>Enter</kbd></button></div></div>`
-    : `<div class="type-row"><input id="mystIn" type="text" list="mystList" autocomplete="off" spellcheck="false" placeholder="Which country is it? Press Enter to guess"><button class="btn" id="mystMore" ${m.shown >= m.clues.length ? 'disabled' : ''}>Next clue</button><button class="btn primary" id="mystAdd">Guess</button></div>
-      <datalist id="mystList">${HOP_GUESSABLE.map(x => `<option value="${h(x.name)}">`).join('')}</datalist>
+    : `<div class="type-row"><input id="mystIn" type="text" autocomplete="off" spellcheck="false" placeholder="Which country is it? Press Enter to guess"><button class="btn" id="mystMore" ${m.shown >= m.clues.length ? 'disabled' : ''}>Next clue</button><button class="btn primary" id="mystAdd">Guess</button></div>
+      <div class="sugg" id="mystSugg"></div>
       <div class="hop-msg" id="mystMsg"></div>`}
     <ol class="myst-clues">${m.clues.slice(0, shown).map((c, i) => `<li class="${i >= m.shown ? 'late' : ''} ${i === m.shown - 1 && !m.done ? 'new' : ''}"><span class="mc-n">${i + 1}</span><span class="mc-t">${c.t}</span><div class="mc-b">${c.html}</div></li>`).join('')}</ol>
     ${m.guesses.length ? `<div class="myst-wrong">${m.guesses.filter(id => id !== f.id).map(id => `<span><img src="${FLAG_BY_ID[id].src}" alt="">${h(FLAG_BY_ID[id].name)}</span>`).join('')}</div>` : ''}
@@ -1510,6 +1549,7 @@ function renderMystPlay() {
     const submit = () => { const t = inp.value; if (!t.trim()) return; inp.value = ''; mystGuess(t); };
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); submit(); } });
     $('#mystAdd').addEventListener('click', submit);
+    attachSuggest(inp, $('#mystSugg'), HOP_GUESSABLE, f => mystGuess(f.name), { flags: false }); // no flags: the last clue is the flag
     $('#mystMore').addEventListener('click', () => { if (m.shown < m.clues.length) { m.shown++; renderMystPlay(); } });
     $('#mystGiveUp').addEventListener('click', () => mystFinish(false));
   }
